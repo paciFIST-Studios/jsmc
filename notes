@@ -3,6 +3,242 @@ This depo is for a deep-dive into javascript, with pirple
 https://www.pirple.com/courses/take/the-nodejs-master-class/texts/26754912-welcome
 
 
+The Story of Node.js
+
+Why is node used the way it is?
+
+Critics are pieces of shit, ignore them, they only want something to shit on.
+
+Node existed before it was popular.  Ease-of-access to the consumer, was required, before Node became popular.
+
+
+
+The Chrome V8 Javascript Engine:
+
+1. Computers only understand machine code
+2. In order to execute "high level" code, computers use:
+    a. Interpreters - Take source code and execute it themselves at runtime (compilation+execution, w/o an executable file)
+    b. Compilers - turn source code into machine code, machine code can be run
+    c. Transpilers - turn source code into a different kind of source code
+
+3. V8, is an interpreter for javascript
+4. A web browser, is an application that uses a javascript engine, as an interpreter
+
+
+What is Node.js?
+
+1. Node.js is a server-side javascript runtime environment
+    a. application that runs on the os, not in the browser
+    b. looks at js, and sends the js to an interpreter, like V8, so it can be executed
+        i. v8, is the car's engine
+        ii. Node.js is the rest of the car
+        iii. the programmer is the driver
+
+
+2. Now, Node.js is two programs:  a REPL, and a script processor
+    a. Script processor
+
+        i. processor_name script_name
+           ex:  "node server.js"
+
+            _a. the when you run node, it starts an event loop, and keeps checking back to that loop, as a scheduling mechanism
+            _b. synchronous behaviours are executed synchronously, as node begins preparing the js file
+            _c. async behaviours are enqueued, and these are executed whenever it's their turn
+            _d. if the node event loop ever succeeds in clearing out it's task queue, then the program exits
+            _e. if there are tasks which schedule additional tasks, it's possible node will run indefinitely
+
+            _f. items that can be added to the node todo list, are mostly non-blocking or async items, such as callbacks and timeouts
+            _g. blocking tasks are performed in an order, but web applications tend not to need ordered processing--instead needing as much
+                concurrent processing as possible
+
+            _h. non-blocking execution is a HUGE performance boost for web applications, because most of what they do is wait for responses
+                
+                take in data -> parse -> send to database -> wait (sync)
+                take in data -> parse -> send to database -> yield -> do something else (async)
+
+
+            _i. Node is really an async scheduling tool, so node programs should be async programs
+
+
+
+    b. How does Node work with all the application files, if you only give it an entry point?
+        i. node's module system
+            _a. actually this is a lot like python's import system, but it sounds like 
+                you don't need to worry as much about importing stuff you don't use
+
+
+    c. Node's script process:
+        i. reads in the files you specify
+        ii. reads in the dependencies of your files, and the dependencies of the dependencies, recursively
+        iii. begins executing the sync tasks from the files it's read in
+        iv. begins processing a list of async tasks, by repeating the event loop, until there are no async tasks
+        v. exits when task list is empty
+
+
+    d. REPL
+        i. Read, Eval Print-Loop
+        ii. actually this is a lot like python's interpreter mode
+        iii. ie:
+                while True:
+                    commands = read_input()
+                    execute(commands)
+        
+
+
+
+
+3. Anatomy of a Node application
+
+
+/////////////////////////////////////////////////////////////////////
+
+
+
+
+For node, index.js is like main.py
+
+
+
+
+Grunt and Gulp are task schedulers
+
+Node has few configurations conventions
+
+// one option
+NODE_ENV=myEnvironmentName node index.js
+
+// Just past all args to node when you start it
+DBpassowrd='' apiToken='' port='' arg=val node index.js
+
+// use a .env file, to handle configuration
+
+
+
+Styles and Patterns
+
+Airbnb, is the most popular node.js style guide
+
+Linters (syntax checkers) are jshint, and jslint
+
+
+
+Error Handling
+
+1. Errback Pattern
+    a. functions should callback two params
+        i. an error, if any
+        ii. data being returned, if any
+
+        eg:
+
+        exampleFunction( function(err, data) ){
+            check(err);
+            process(data);
+        });
+
+2. Avoid throwing exceptions, because node.js is single threaded, 
+    so an uncaught exception will crash the thread (and the application)
+    a. it's okay to throw an exception, if the exception should kill the application
+
+
+3. avoid globals, b/c it pollutes the namespace.
+    a. scope your variables to your own modules and functions
+
+
+
+
+
+Node.js vs the Browser
+
+Node.js is back-end, so it can't do front-end things, like graphics and windows
+Node can write to file system.
+
+End users cannot see the source that lives on the server.  End users CAN SEE SOURCE
+that is distributed to the browser.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
