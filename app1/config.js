@@ -15,7 +15,8 @@ environments.staging = {
     'ip': 'localhost',
     'httpPort': 27182,
     'httpsPort': 27183,
-    'envName': 'staging'
+    'envName': 'staging',
+    'hashingSecret': 'HzZtYPbZRY7bvA5kD7FQpC4C8pQW2fyB62jARjvSeG57hBSwqsHGq6SptRzH'
 };
 
 
@@ -23,7 +24,8 @@ environments.production = {
     'ip': 'localhost',
     'httpPort': 27182,
     'httpsPort': 27183,
-    'envName': 'production'
+    'envName': 'production',
+    'hashingSecret': 'nVrvdFh6c4567pVwYGgfDuYkXuYehK4C4dThJVTQJFwsurt4hQDkgrXuKkKq'
 };
 
 

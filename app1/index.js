@@ -15,7 +15,8 @@ const StringDecoder = require('string_decoder').StringDecoder;
 
 // configuration variable relies on NODE_ENV
 const config = require('./config');
-
+const handlers = require('./lib/handlers');
+const helpers = require('./lib/helpers');
 
 function debugPrint(method, path, query, header, buffer){
     const showDebug = false;
@@ -110,7 +111,7 @@ var internalProcessing = function(request, response){
             'query': queryStringObject,
             'method': methodType,
             'header': headers,
-            'payload': buffer
+            'payload': helpers.parseJsonToObject(buffer)
         };
     
         // send data from the incoming response, to the handler it requested
@@ -130,7 +131,7 @@ var internalProcessing = function(request, response){
             response.end(payloadString);
         
             debugPrint(methodType, trimmedPath, queryStringObject, headers, buffer);
-            console.log(`Returning:  ${statusCode}, ${payloadString}`);
+            console.log(`${statusCode}, ${payloadString}`);
         });
     
     });
@@ -139,44 +140,13 @@ var internalProcessing = function(request, response){
 
 
 
-// handler callbacks return (statusCode, json)
-var handlers = {};
-handlers.notFound = function(data, callback){
-    callback(404);
-};
-
-handlers.ping = function(data, callback){
-    callback(200);
-};
 
 // A request router handles incoming requests, by matching requests for specific
 // paths in the API, with the calls to that API
 var router = {
-    'ping': handlers.ping
+    'ping': handlers.ping,
+    'users': handlers.users
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
