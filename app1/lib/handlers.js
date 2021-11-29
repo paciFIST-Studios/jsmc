@@ -37,6 +37,7 @@ handlers.users = function(data, callback){
 // split the different method types into their own fns
 handlers._users = {};
 
+// POST =======================================================================
 // required data:  first name, last name, phone, password, (bool)tos_agreement
 // optional data:  none
 handlers._users.post = function(data, callback){
@@ -51,8 +52,8 @@ handlers._users.post = function(data, callback){
 
     // NOTE: does not support country code!  (###) ###-#### : len=10
     const formattedPhone = helpers.formatPhoneNumber(data.payload.phone);
-    const phone = typeof(formattedPhone) == 'string' && formattedPhone.trim().length == 10 
-        ? formattedPhone.trim() 
+    const phone = typeof(formattedPhone) == 'string' && formattedPhone.length == 10 
+        ? formattedPhone 
         : false;
     
     const password = typeof(data.payload.password) == 'string' && data.payload.password.trim().length > 0 
@@ -105,14 +106,16 @@ handlers._users.post = function(data, callback){
     }
 };
 
+// GET ========================================================================
 // required data: phone
 // optional data: none
 // TODO:    only allow an authed-in user to access data
 //          only allow users to access their own data
 handlers._users.get = function(data, callback){
     // check phone number in query string
-    var phone  = typeof(data.query.phone) == 'string' && data.query.phone.trim().length == 10 
-        ? data.query.phone.trim() 
+    const formattedPhone = helpers.formatPhoneNumber(data.query.phone);
+    var phone  = typeof(formattedPhone) == 'string' && formattedPhone.length == 10 
+        ? formattedPhone 
         : false;
 
     if (phone){
@@ -130,10 +133,108 @@ handlers._users.get = function(data, callback){
     }
 };
 
-handlers._users.put = function(data, callback)
-{};
 
+// PUT ========================================================================
+// "update"
+// required data: phone
+// optional data: firstName, lastName, password (requires 1+)
+// @TODO:   Only update for authed-in users
+//          user can only update their own information
+handlers._users.put = function(data, callback){
+    // check for phone    
+    const formattedPhone = helpers.formatPhoneNumber(data.payload.phone);
+    var phone  = typeof(formattedPhone) == 'string' && formattedPhone.length == 10 
+        ? formattedPhone 
+        : false;
+
+    // check that required fields are filled out
+    const firstName = typeof(data.payload.firstName) == 'string' && data.payload.firstName.trim().length > 0 
+        ? data.payload.firstName.trim() 
+        : false;
+
+    const lastName = typeof(data.payload.lastName) == 'string' && data.payload.lastName.trim().length > 0 
+        ? data.payload.lastName.trim() 
+        : false;
+
+    const password = typeof(data.payload.password) == 'string' && data.payload.password.trim().length > 0 
+        ? data.payload.password.trim() 
+        : false;
+
+    if(phone){
+        if (firstName || lastName || password){
+            // lookup user
+            _data.read('users', phone, function(error, userData){
+                if(!error && userData){
+                    if(firstName){
+                        userData.firstName = firstName;
+                    }
+
+                    if(lastName){
+                        userData.lastName = lastName;
+                    }
+
+                    if(password){
+                        var hashword = helpers.hash(password);
+                        userData.hashword = hashword;
+                    }
+
+                    // store updates
+                    _data.update('users', phone, userData, function(error){
+                        if (!error){
+                            // update success
+                            callback(200, {'updated_user': true});
+                        } else {
+                            console.log(error);
+                            callback(500, {'error': 'Internal Error: Could not update user'});
+                        }
+                    });
+
+                } else {
+                    callback(400, {'error': 'User does not exist'});
+                }
+            });
+            //
+        } else {
+            callback(400, {'error': 'Missing fields to update'});
+        }
+    } else {
+        callback(400, {'error': 'Missing required field'});
+    }
+
+};
+
+
+// DELETE =====================================================================
+// required data: phone
+// optional data: none
+// TODO:    Only auth'd-in users can access
+//          users can only delete their own account
+// TODO:    delete other files related to this user
 handlers._users.delete = function(data, callback){
+    // check phone number in query string
+    const formattedPhone = helpers.formatPhoneNumber(data.query.phone);
+    var phone  = typeof(formattedPhone) == 'string' && formattedPhone.length == 10 
+        ? formattedPhone 
+        : false;
+
+    if (phone){
+        _data.read('users', phone, function(error, userData){
+            if(!error && userData){
+                _data.delete('users', phone, function(error){
+                    if(!error){
+                        callback(200, {'user_deleted': true});
+                    } else {
+                        callback(500, {'error': 'Internal Error: Could not delete user'});
+                    }
+                });
+
+            } else {
+                callback(400, {'error': 'User not found'});
+            }
+        });
+    } else {
+        callback(400, {'error': 'Missing required field'});
+    }
 };
 
 module.exports = handlers;

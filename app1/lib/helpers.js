@@ -38,12 +38,13 @@ helpers.parseJsonToObject = function(str){
 
 // modified from:  https://stackoverflow.com/a/8358141
 helpers.formatPhoneNumber = function(str){
-    var cleaned = str.replace(/\D+/g, ''); // replace all non-digits with nothing
-    // if someone submitted a country code, reject the number
-    if (cleaned.length == 10){
-        return cleaned;
+    if(typeof(str) == 'string'){
+        var cleaned = str.replace(/\D+/g, ''); // replace all non-digits with nothing
+        // if someone submitted a country code, reject the number
+        if (cleaned.length == 10){
+            return cleaned;
+        }
     }
-
     return null;
 };
 
