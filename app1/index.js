@@ -7,15 +7,35 @@
  */
 
 
-// 
-const http = require('http');
+const http = require('http'); // stdlib, server
+const url = require('url');   // stdlib, url parse
 
 
-// the param'd function, is a callback, which handles connections to server
-var server = http.createServer( function(request, response){
-    // In this example, the server responds to all requests with this string
-    const standardResponse = "Hello World\n";
-    response.end(standardResponse);
+
+var server = http.createServer( 
+    // the param'd function, is a callback, which handles connections to server
+    // b/c this fn handles new requests, the request and response params, are
+    // also new, each time a request comes in
+    function(request, response){
+    
+        // (user submits request w/ url)
+        // get url
+        // parse url
+    
+        // Here, "true" indicates that we should parse the url as a query
+        var parsedUrl = url.parse(request.url, true);
+
+        // get path from url (path == "route", in the sense of './' ?)
+        var path = parsedUrl.pathname;
+        var trimmedPath = path.replace(/^\/+|\/+$/g, ''); // trim external slashes
+
+        // send correct response for path
+            // In this example, the server responds to all requests with this string
+        const standardResponse = "Hello World\n";
+        response.end(standardResponse);
+        
+        // log requested path
+        console.log(`request: "${trimmedPath}"`);
 });
 
 
