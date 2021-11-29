@@ -11,4 +11,16 @@ For this application, we are going to build a REST API for an uptime monitoring 
 As a user, you will submit a url for tracking, and you'll get alerts if that url goes down, or comes back up.
 
 
+Node Module notes:
+
+
+    http - this module deals with HTTP requests, and allows you to start a server
+
+
+
+
+
+
+
+
 

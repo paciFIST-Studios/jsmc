@@ -11,6 +11,9 @@ const http = require('http'); // stdlib, server
 const url = require('url');   // stdlib, url parse
 const StringDecoder = require('string_decoder').StringDecoder;
 
+// configuration variable relies on NODE_ENV
+const config = require('./config');
+
 
 function debugPrint(method, path, query, header, buffer){
     const showDebug = false;
@@ -116,20 +119,16 @@ var server = http.createServer(
 
 
 // initiate server listen
-server.PORT = 27182;
-server.listen(server.PORT, function(){
+server.listen(config.port, function(){
     // after server.listen runs, we enter this callback, indicating that the
     // server has STARTED listening
-    console.log(`Server listening on ${server.PORT}`);
+    console.log(`Server listening on ${config.port}.env=${config.envName}`);
 });
 
 
-// handlers
+// handler callbacks return (statusCode, json)
 var handlers = {};
 handlers.sample = function(data, callback){
-    // callback returns:
-    //      http status code
-    //      object (payload)
     callback(406, {'name': 'From handlers.sample'});
 };
 
