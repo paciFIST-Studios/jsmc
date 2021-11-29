@@ -12,36 +12,6 @@ const https = require('https');
 const url = require('url');
 const StringDecoder = require('string_decoder').StringDecoder;
 
-// test create fn
-var _data = require('./lib/data')
-_data.create('test', 'newFile', '{"name": "test"}', function(error){
-    console.log(error);
-});
-
-_data.read('test', 'newFile', function(error, data){
-    if(!error){
-        console.log(`read from file: ${data}`);
-    } else {
-        console.log(`error reading file: "${error}"`);
-    }
-});
-
-_data.update('test', 'newFile', '{"color":"cyan"}', function(error){
-    if (!error){
-        console.log(`file updated`);
-    } else {
-        console.log(`error updating file: "${error}"`)
-    }
-});
-
-_data.delete('test', 'newFile', function(error){
-    if(!error){
-        console.log('file deleted');
-    } else {
-        console.log(`error deleting file: "${error}"`);
-    }
-});
-
 
 // configuration variable relies on NODE_ENV
 const config = require('./config');
