@@ -9,7 +9,7 @@
 
 const http = require('http'); // stdlib, server
 const url = require('url');   // stdlib, url parse
-
+const StringDecoder = require('string_decoder').StringDecoder;
 
 
 var server = http.createServer( 
@@ -38,20 +38,45 @@ var server = http.createServer(
         var headers = request.headers;
 
 
-        // send correct response for path
-            // In this example, the server responds to all requests with this string
-        const standardResponse = "Hello World\n";
-        response.end(standardResponse);
-        
-        // log requested path
-        console.log(`request: ${methodType}:${trimmedPath}`);
-        process.stdout.write('query=');
-        console.log(queryStringObject); // weird printing issues, b/c this is NoneType, and also a dict
-        
-        // headers are affixed by sending request from Insomnia
-        process.stdout.write('headers=');
-        console.log(headers);
-});
+        // get user defined payload.  StringDecoder is a stream reader
+        var decoder = new StringDecoder('utf-8');
+        var buffer = '';
+        // as the data comes in, the on data event will emit,
+        // and then we can use the stream reader, it transform the
+        // streamed data, into utf-8 string data, that we append to the buffer
+        request.on('data', function(data){
+            buffer += decoder.write(data);    
+        });
+
+        // called when data finishes streaming
+        request.on('end', function(){
+            // In Node.js, to get data from a stream, you bind to the stream's events, 
+            // and then read it, and then close it.  Streams are built into Node
+            buffer += decoder.end()
+
+            // we're sending the responses from the handler of the 'end' event.
+            // the 'data' event may not be called, but the 'end' event will always be called
+            // you're allowed to call decoder.end() on an empty string
+
+
+            // send correct response for path
+                // In this example, the server responds to all requests with this string
+            const standardResponse = "Hello World\n";
+            response.end(standardResponse);
+            
+            // log requested path
+            console.log(`request: ${methodType}:${trimmedPath}`);
+            process.stdout.write('query=');
+            console.log(queryStringObject); // weird printing issues, b/c this is NoneType, and also a dict
+            
+            // headers are affixed by sending request from Insomnia
+            process.stdout.write('headers=');
+            console.log(headers);
+
+            // payload is the "body" of the request
+            process.stdout.write(`payload=${buffer}`);
+        });
+    });
 
 
 // the server has been created, and its behaviour specified
