@@ -33,6 +33,11 @@ var server = http.createServer(
         // get http method type
         var methodType = request.method.toLowerCase();
 
+
+        // get submitted headers as an object
+        var headers = request.headers;
+
+
         // send correct response for path
             // In this example, the server responds to all requests with this string
         const standardResponse = "Hello World\n";
@@ -42,6 +47,10 @@ var server = http.createServer(
         console.log(`request: ${methodType}:${trimmedPath}`);
         process.stdout.write('query=');
         console.log(queryStringObject); // weird printing issues, b/c this is NoneType, and also a dict
+        
+        // headers are affixed by sending request from Insomnia
+        process.stdout.write('headers=');
+        console.log(headers);
 });
 
 
