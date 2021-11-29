@@ -12,6 +12,28 @@ const url = require('url');   // stdlib, url parse
 const StringDecoder = require('string_decoder').StringDecoder;
 
 
+function debugPrint(method, path, query, header, buffer){
+    const showDebug = false;
+
+    if(!showDebug){
+        return;
+    }
+
+    
+    // log requested path
+    console.log(`request: ${method}:${path}`);
+    process.stdout.write('query=');
+    console.log(query); // weird printing issues, b/c this is NoneType, and also a dict
+    
+    // headers are affixed by sending request from Insomnia
+    process.stdout.write('headers=');
+    console.log(header);
+    
+    // payload is the "body" of the request
+    process.stdout.write(`payload=${buffer}`);
+};
+
+
 var server = http.createServer( 
     // the param'd function, is a callback, which handles connections to server
     // b/c this fn handles new requests, the request and response params, are
@@ -25,18 +47,14 @@ var server = http.createServer(
         var path = parsedUrl.pathname;
         var trimmedPath = path.replace(/^\/+|\/+$/g, ''); // trim external slashes
 
-
         // get query string as an object
         var queryStringObject = parsedUrl.query;
-
 
         // get http method type
         var methodType = request.method.toLowerCase();
 
-
         // get submitted headers as an object
         var headers = request.headers;
-
 
         // get user defined payload.  StringDecoder is a stream reader
         var decoder = new StringDecoder('utf-8');
@@ -52,29 +70,42 @@ var server = http.createServer(
         request.on('end', function(){
             // In Node.js, to get data from a stream, you bind to the stream's events, 
             // and then read it, and then close it.  Streams are built into Node
-            buffer += decoder.end()
-
+            //
             // we're sending the responses from the handler of the 'end' event.
             // the 'data' event may not be called, but the 'end' event will always be called
             // you're allowed to call decoder.end() on an empty string
+            buffer += decoder.end()
 
 
-            // send correct response for path
-                // In this example, the server responds to all requests with this string
-            const standardResponse = "Hello World\n";
-            response.end(standardResponse);
+            // choose handler response
+            var chosenHandler = typeof(router[trimmedPath]) !== 'undefined' ? router[trimmedPath] : handlers.notFound;
+
+            var data = {
+                'path': trimmedPath,
+                'query': queryStringObject,
+                'method': methodType,
+                'header': headers,
+                'payload': buffer
+            };
+
+            // send data from the incoming response, to the handler it requested
+            chosenHandler(data, function(statusCode, payload){
+                // returns handler's status code, else 200
+                // returns handler's payload else {} ('empty object')
+                
+                statusCode = typeof(statusCode) == 'number' ? statusCode : 200;
+                payload = typeof(payload) == 'object' ? payload : {};
+
+                // convert payload to string
+                var payloadString = JSON.stringify(payload);
+
+                response.writeHead(statusCode);
+                response.end(payloadString);
             
-            // log requested path
-            console.log(`request: ${methodType}:${trimmedPath}`);
-            process.stdout.write('query=');
-            console.log(queryStringObject); // weird printing issues, b/c this is NoneType, and also a dict
-            
-            // headers are affixed by sending request from Insomnia
-            process.stdout.write('headers=');
-            console.log(headers);
+                debugPrint(methodType, trimmedPath, queryStringObject, headers, buffer);
+                console.log(`Returning:  ${statusCode}, ${payloadString}`);
+            });
 
-            // payload is the "body" of the request
-            process.stdout.write(`payload=${buffer}`);
         });
     });
 
@@ -89,5 +120,52 @@ server.listen(server.PORT, function(){
     // server has STARTED listening
     console.log(`Server listening on ${server.PORT}`);
 });
+
+
+// handlers
+var handlers = {};
+handlers.sample = function(data, callback){
+    // callback returns:
+    //      http status code
+    //      object (payload)
+    callback(406, {'name': 'From handlers.sample'});
+};
+
+
+handlers.notFound = function(data, callback){
+    callback(404);
+};
+
+
+
+// A request router handles incoming requests, by matching requests for specific
+// paths in the API, with the calls to that API
+var router = {
+    'sample': handlers.sample
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
