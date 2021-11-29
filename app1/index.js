@@ -140,21 +140,18 @@ var internalProcessing = function(request, response){
 
 // handler callbacks return (statusCode, json)
 var handlers = {};
-handlers.sample = function(data, callback){
-    callback(406, {'name': 'From handlers.sample'});
-};
-
-
 handlers.notFound = function(data, callback){
     callback(404);
 };
 
-
+handlers.ping = function(data, callback){
+    callback(200);
+};
 
 // A request router handles incoming requests, by matching requests for specific
 // paths in the API, with the calls to that API
 var router = {
-    'sample': handlers.sample
+    'ping': handlers.ping
 };
 
 
