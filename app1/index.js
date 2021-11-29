@@ -18,16 +18,17 @@ var server = http.createServer(
     // also new, each time a request comes in
     function(request, response){
     
-        // (user submits request w/ url)
-        // get url
-        // parse url
-    
         // Here, "true" indicates that we should parse the url as a query
         var parsedUrl = url.parse(request.url, true);
 
         // get path from url (path == "route", in the sense of './' ?)
         var path = parsedUrl.pathname;
         var trimmedPath = path.replace(/^\/+|\/+$/g, ''); // trim external slashes
+
+
+        // get query string as an object
+        var queryStringObject = parsedUrl.query;
+
 
         // get http method type
         var methodType = request.method.toLowerCase();
@@ -39,6 +40,8 @@ var server = http.createServer(
         
         // log requested path
         console.log(`request: ${methodType}:${trimmedPath}`);
+        process.stdout.write('query=');
+        console.log(queryStringObject); // weird printing issues, b/c this is NoneType, and also a dict
 });
 
 
