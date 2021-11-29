@@ -13,14 +13,16 @@ var environments = {};
 
 environments.staging = {
     'ip': 'localhost',
-    'port': 27182,
+    'httpPort': 27182,
+    'httpsPort': 27183,
     'envName': 'staging'
 };
 
 
 environments.production = {
     'ip': 'localhost',
-    'port': 27182,
+    'httpPort': 27182,
+    'httpsPort': 27183,
     'envName': 'production'
 };
 
