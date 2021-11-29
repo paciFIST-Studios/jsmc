@@ -1,0 +1,43 @@
+Specification:
+
+Uptime Monitoring Application for User-Submitted URLs
+
+1. API listens on PORT, and accepts HTTP requests of type:
+    a. POST
+    b. GET
+    c. PUT
+    d. DELETE
+    e. HEAD
+
+2. API allows client to connect, and then:
+    a. Add user
+    b. Edit user
+    c. Delete user
+
+3. API allows user to auth-in:
+    a. returns an auth-token
+    b. auth-token is for subsequent requrests
+
+4. API allows user to auth-out:
+    a. invalidates existing token
+
+5. API allows signed-in user to:
+    a. create a new "check-url" task, using token
+    b. user can define expected "all okay" values
+    c. users are limited to 5 "check-url" tasks
+
+6. API allows signed-in user to:
+    a. edit any of their "check-url" tasks
+    b. delete any of their "check-url" tasks
+    
+7. Application:
+    a. executes the "check-url" tasks in the background, as scheduled (every 60s)
+    b. sends alerts to users when the target of a "check-url" task changes state
+        i. "up" to "down", or vis versa
+    c. alert sent using sms
+
+8. To send sms, application uses node to connect to Twilio API
+
+9. This application will use filesystem as storage for json, rather than using MongoDB
+
+ 

@@ -1,3 +1,14 @@
 
 rest api
 
+
+to open a second pane of the editor in vertical mode, use ":vsplit file"
+Then, use "ctrl+w"+arrow in order to select a pane
+
+
+
+For this application, we are going to build a REST API for an uptime monitoring application.
+As a user, you will submit a url for tracking, and you'll get alerts if that url goes down, or comes back up.
+
+
+
