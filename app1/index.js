@@ -98,7 +98,9 @@ var server = http.createServer(
 
                 // convert payload to string
                 var payloadString = JSON.stringify(payload);
-
+                
+                // mark response as json
+                response.setHeader('Content-Type','application/json');
                 response.writeHead(statusCode);
                 response.end(payloadString);
             
