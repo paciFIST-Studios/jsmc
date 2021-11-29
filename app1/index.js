@@ -29,13 +29,16 @@ var server = http.createServer(
         var path = parsedUrl.pathname;
         var trimmedPath = path.replace(/^\/+|\/+$/g, ''); // trim external slashes
 
+        // get http method type
+        var methodType = request.method.toLowerCase();
+
         // send correct response for path
             // In this example, the server responds to all requests with this string
         const standardResponse = "Hello World\n";
         response.end(standardResponse);
         
         // log requested path
-        console.log(`request: "${trimmedPath}"`);
+        console.log(`request: ${methodType}:${trimmedPath}`);
 });
 
 
