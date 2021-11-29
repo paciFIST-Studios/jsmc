@@ -105,7 +105,29 @@ handlers._users.post = function(data, callback){
     }
 };
 
+// required data: phone
+// optional data: none
+// TODO:    only allow an authed-in user to access data
+//          only allow users to access their own data
 handlers._users.get = function(data, callback){
+    // check phone number in query string
+    var phone  = typeof(data.query.phone) == 'string' && data.query.phone.trim().length == 10 
+        ? data.query.phone.trim() 
+        : false;
+
+    if (phone){
+        _data.read('users', phone, function(error, userData){
+            if(!error && userData){
+                // remove hashword, before returning user
+                delete userData.hashword;
+                callback(200, userData);
+            } else {
+                callback(404, {'error': 'User not found'});
+            }
+        });
+    } else {
+        callback(400, {'error': 'Missing required field'});
+    }
 };
 
 handlers._users.put = function(data, callback)

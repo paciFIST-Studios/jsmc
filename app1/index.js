@@ -14,7 +14,7 @@ const StringDecoder = require('string_decoder').StringDecoder;
 
 
 // configuration variable relies on NODE_ENV
-const config = require('./config');
+const config = require('./lib/config');
 const handlers = require('./lib/handlers');
 const helpers = require('./lib/helpers');
 
@@ -75,7 +75,7 @@ var internalProcessing = function(request, response){
     
     // get query string as an object
     var queryStringObject = parsedUrl.query;
-    
+
     // get http method type
     var methodType = request.method.toLowerCase();
     

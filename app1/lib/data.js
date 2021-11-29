@@ -8,6 +8,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const helpers = require('./helpers');
+
 var lib = {};
 
 // most of the files/dirs will live in .data, so we need get path
@@ -52,7 +54,12 @@ lib.create = function(dir, file, data, callback){
 lib.read = function(dir, file, callback){
     const path = lib.baseDir+dir+'/'+file+'.json';
     fs.readFile(path, 'utf-8', function(error, data){
-        callback(error, data);
+        if(!error && data){
+            const parsed = helpers.parseJsonToObject(data);
+            callback(false, parsed);
+        } else {
+            callback(error, data);
+        }
     });  
 };
 
