@@ -260,7 +260,7 @@ handlers.tokens = function(data, callback){
 
 handlers._tokens = {};
 handlers._token_length = 40;
-handlers._token_lifetime = 3600;
+handlers._token_lifetime = 3600000;
 
 // TOKENS: POST ================================================================
 // required data: Phone, Password
@@ -334,7 +334,39 @@ handlers._tokens.get = function(data, callback){
 
 
 // TOKENS: PUT =================================================================
-handlers._tokens.put = function(data, callback){};
+// required data: id, addtime(bool)
+// required data: none
+handlers._tokens.put = function(data, callback){
+    const tokenID = getString(data.payload.id);
+    const addTime = getBool(data.payload.addtime);
+
+    if(tokenID && addTime){
+       _data.read('tokens', tokenID, function(error, tokenData){
+        if(!error && tokenData){
+
+            const time = Date.now();
+            if (tokenData.expires > time){
+                tokenData.expires = time + handlers._token_lifetime;
+                
+                _data.update('tokens', tokenID, tokenData, function(error){
+                    if(!error){
+                        callback(200, tokenData);
+                    } else {
+                        callback(500, {'error': 'Internal Error: Could not update token'})
+                    }
+                });
+
+            } else {
+                callback(400, {'error': 'Token expired.  Create new token.'});
+            }
+        } else {
+            callback(400, {'error': 'Token not found'});
+        }
+       }); 
+    } else {
+        callback(400, {'error': 'Missing fields or malformed fields'});
+    }
+};
 
 
 // TOKENS: DELETE ==============================================================
