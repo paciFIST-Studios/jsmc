@@ -145,8 +145,7 @@ var internalProcessing = function(request, response){
 // paths in the API, with the calls to that API
 var router = {
     'ping': handlers.ping,
-    'users': handlers.users
+    'users': handlers.users,
+    'tokens': handlers.tokens
 };
-
-
 

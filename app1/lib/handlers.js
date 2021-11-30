@@ -54,7 +54,7 @@ function getBool(unformattedBool){
     }
 
     // returns a bool or null
-    return Null;
+    return null;
 };
 
 
@@ -93,7 +93,7 @@ handlers._users.post = function(data, callback){
             // we get an error if we read from a file that doesn't exist, so it's a bit janky,
             // but we're using this read to check for no-file
             if (error){
-                var hashedPassword = helpers.hash(password);
+                const hashedPassword = helpers.hash(password);
                 
                 if(hashedPassword){
                     // create user
@@ -250,7 +250,7 @@ handlers.tokens = function(data, callback){
     const acceptedMethods = ['post', 'get', 'put', 'delete'];
 
     if (acceptedMethods.indexOf(data.method) > -1){
-        handlers._users[data.method](data, callback);
+        handlers._tokens[data.method](data, callback);
     } else {
         // http code for "method not allowed"
         callback(405);
@@ -259,7 +259,8 @@ handlers.tokens = function(data, callback){
 };
 
 handlers._tokens = {};
-
+handlers._token_length = 40;
+handlers._token_lifetime = 3600;
 
 // TOKENS: POST ================================================================
 // required data: Phone, Password
@@ -267,13 +268,69 @@ handlers._tokens = {};
 handlers._tokens.post = function(data, callback){
 
     // here, the user is creating a token
-    const phone = getPhone(data.query.phone);
+    const phone = getPhone(data.payload.phone);
+    const password = getString(data.payload.password);
 
+    if (phone && password){
+        // look up user from phone number
+        _data.read('users', phone, function(error, userData){
+            if(!error && userData){
+                // did they give us the correct password?
+                const hashedPassword = helpers.hash(password);
+                if(hashedPassword == userData.hashword){
+                    // TODO: invalidate user's old tokens, and remove them from fs
+
+                    // create token, token expires in 1 hour  
+                    var authToken = helpers.createAuthToken(phone, 
+                        handlers._token_length, 
+                        handlers._token_lifetime);
+
+                    // store, so we can check against this token in the future
+                    _data.create('tokens', authToken.tokenID, authToken, function(error){
+                        if(!error){
+                            // success
+                            callback(200, authToken);
+                        } else {
+                            callback(500, {'error': 'Internal Error: Could not create new token'});
+                        }
+                    });
+                } else {
+                    callback(400, {'error': 'Invalid user credentials'});
+                }
+            } else {
+                callback(400, {'error': 'User not found'});
+            }
+        }); 
+    } else {
+        callback(400, {'error': 'Missing required data'});
+    }
 };
 
 
 // TOKENS: GET =================================================================
-handlers._tokens.get = function(data, callback){};
+// required data: id
+// optional data: none
+handlers._tokens.get = function(data, callback){
+    // GET uses query string
+    const tokenID = getString(data.query.id);
+    if (tokenID){
+        // TODO: refactor into validateToken fn
+        if(tokenID.length == handlers._token_length){
+            _data.read('tokens', tokenID, function(error, tokenData){
+                if(!error && tokenData){
+                    callback(200, tokenData);
+                } else {
+                    callback(500, {'error': 'Internal Error, could not retreive token data'});
+                }
+            });
+
+        } else {
+            callback(400, {'error': 'Malformed Token'});
+        }
+    } else {
+        callback(400, {'error': 'Malformed or missing token id'});
+    }
+};
 
 
 // TOKENS: PUT =================================================================

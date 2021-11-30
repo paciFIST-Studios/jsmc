@@ -49,6 +49,42 @@ helpers.formatPhoneNumber = function(str){
 };
 
 
+helpers.createRandomString = function(length){
+    const MIN_LEN = 10;
+    if(typeof(length) == 'number'){
+        length = length > MIN_LEN ? length : MIN_LEN;
+        const characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_';
+
+        var str = '';
+        for(i = 0; i < length; i++){
+            // get random char
+            var randChar = characters.charAt(
+                Math.floor(Math.random() * characters.length));
+            str += randChar;
+        };
+
+        return str;
+    } else {
+        return false;
+    }
+};
+
+
+// length == token length, lifespant == timespan (sec) until expiration
+helpers.createAuthToken = function(userID, length, lifespan){
+    const tokenID = helpers.createRandomString(length);
+    const tokenExpires = Date.now() + lifespan;
+
+    var token = {
+        'userID': userID,
+        'tokenID': tokenID,
+        'expires': tokenExpires
+   }; 
+
+    return token;
+};
+
+
 module.exports = helpers;
 
 
