@@ -3,7 +3,6 @@
  *
  *
  *
- *
  */
 
 
@@ -22,6 +21,46 @@ handlers.ping = function(data, callback){
     callback(200);
 };
 
+
+// UTIL =======================================================================
+//
+// these functions serve as local utilities, which are too specialized to fit
+// into the helper lib, but the tasks are performed too frequently not to
+// refactor them into some util fns
+
+function getPhone(unformattedPhone){
+    // NOTE: does not support country code!  (###) ###-#### : len=10
+    const formattedPhone = helpers.formatPhoneNumber(unformattedPhone);
+    const phone = typeof(formattedPhone) == 'string' && formattedPhone.length == 10 
+        ? formattedPhone 
+        : false;
+
+    //  Returns phone number as just 10 digits, or returns false
+    return phone;
+};
+
+function getString(unformattedString){
+    const str = typeof(unformattedString) == 'string' && unformattedString.trim().length > 0 
+        ? unformattedString.trim() 
+        : false;
+
+    // returns a string, of len > 0, or false
+    return str;
+};
+
+function getBool(unformattedBool){
+    if(typeof(unformattedBool) == 'boolean'){
+        return unformattedBool;
+    }
+
+    // returns a bool or null
+    return Null;
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
+// USERS ======================================================================
+
 handlers.users = function(data, callback){
     const acceptedMethods = ['post', 'get', 'put', 'delete'];
 
@@ -31,39 +70,23 @@ handlers.users = function(data, callback){
         // http code for "method not allowed"
         callback(405);
     }
-
 };
 
 // split the different method types into their own fns
 handlers._users = {};
 
-// POST =======================================================================
+// USERS: POST ================================================================
 // required data:  first name, last name, phone, password, (bool)tos_agreement
 // optional data:  none
 handlers._users.post = function(data, callback){
-    // check that required fields are filled out
-    const firstName = typeof(data.payload.firstName) == 'string' && data.payload.firstName.trim().length > 0 
-        ? data.payload.firstName.trim() 
-        : false;
-
-    const lastName = typeof(data.payload.lastName) == 'string' && data.payload.lastName.trim().length > 0 
-        ? data.payload.lastName.trim() 
-        : false;
-
-    // NOTE: does not support country code!  (###) ###-#### : len=10
-    const formattedPhone = helpers.formatPhoneNumber(data.payload.phone);
-    const phone = typeof(formattedPhone) == 'string' && formattedPhone.length == 10 
-        ? formattedPhone 
-        : false;
     
-    const password = typeof(data.payload.password) == 'string' && data.payload.password.trim().length > 0 
-        ? data.payload.password.trim() 
-        : false;
+    const firstName = getString(data.payload.firstName);
+    const lastName = getString(data.payload.lastName);
+    const password = getString(data.payload.password);
+    const phone = getPhone(data.payload.phone);
+    const tosAgreement = getBool(data.payload.tosAgreement);
 
-    const tosAgreement = typeof(data.payload.tosAgreement) == 'boolean' && data.payload.tosAgreement == true 
-        ? true 
-        : false;
-
+    // check that required fields are filled out
     if (firstName && lastName && phone && password && tosAgreement){
         // make sure user isn't already registered
         _data.read('users', phone, function(error, data){
@@ -106,17 +129,15 @@ handlers._users.post = function(data, callback){
     }
 };
 
-// GET ========================================================================
+// USERS: GET =================================================================
 // required data: phone
 // optional data: none
 // TODO:    only allow an authed-in user to access data
 //          only allow users to access their own data
 handlers._users.get = function(data, callback){
+
     // check phone number in query string
-    const formattedPhone = helpers.formatPhoneNumber(data.query.phone);
-    var phone  = typeof(formattedPhone) == 'string' && formattedPhone.length == 10 
-        ? formattedPhone 
-        : false;
+    const phone = getPhone(data.query.phone);
 
     if (phone){
         _data.read('users', phone, function(error, userData){
@@ -134,31 +155,18 @@ handlers._users.get = function(data, callback){
 };
 
 
-// PUT ========================================================================
+// USERS: PUT =================================================================
 // "update"
 // required data: phone
 // optional data: firstName, lastName, password (requires 1+)
 // @TODO:   Only update for authed-in users
 //          user can only update their own information
 handlers._users.put = function(data, callback){
-    // check for phone    
-    const formattedPhone = helpers.formatPhoneNumber(data.payload.phone);
-    var phone  = typeof(formattedPhone) == 'string' && formattedPhone.length == 10 
-        ? formattedPhone 
-        : false;
-
-    // check that required fields are filled out
-    const firstName = typeof(data.payload.firstName) == 'string' && data.payload.firstName.trim().length > 0 
-        ? data.payload.firstName.trim() 
-        : false;
-
-    const lastName = typeof(data.payload.lastName) == 'string' && data.payload.lastName.trim().length > 0 
-        ? data.payload.lastName.trim() 
-        : false;
-
-    const password = typeof(data.payload.password) == 'string' && data.payload.password.trim().length > 0 
-        ? data.payload.password.trim() 
-        : false;
+    
+    const firstName = getString(data.payload.firstName);
+    const lastName = getString(data.payload.lastName);
+    const password = getString(data.payload.password);
+    const phone = getPhone(data.payload.phone);
 
     if(phone){
         if (firstName || lastName || password){
@@ -204,18 +212,16 @@ handlers._users.put = function(data, callback){
 };
 
 
-// DELETE =====================================================================
+// USERS: DELETE ==============================================================
 // required data: phone
 // optional data: none
 // TODO:    Only auth'd-in users can access
 //          users can only delete their own account
 // TODO:    delete other files related to this user
 handlers._users.delete = function(data, callback){
+    
     // check phone number in query string
-    const formattedPhone = helpers.formatPhoneNumber(data.query.phone);
-    var phone  = typeof(formattedPhone) == 'string' && formattedPhone.length == 10 
-        ? formattedPhone 
-        : false;
+    const phone = getPhone(data.query.phone);
 
     if (phone){
         _data.read('users', phone, function(error, userData){
@@ -237,31 +243,46 @@ handlers._users.delete = function(data, callback){
     }
 };
 
+
+
+// TOKENS: =====================================================================
+handlers.tokens = function(data, callback){
+    const acceptedMethods = ['post', 'get', 'put', 'delete'];
+
+    if (acceptedMethods.indexOf(data.method) > -1){
+        handlers._users[data.method](data, callback);
+    } else {
+        // http code for "method not allowed"
+        callback(405);
+    }
+
+};
+
+handlers._tokens = {};
+
+
+// TOKENS: POST ================================================================
+// required data: Phone, Password
+// optional data: none
+handlers._tokens.post = function(data, callback){
+
+    // here, the user is creating a token
+    const phone = getPhone(data.query.phone);
+
+};
+
+
+// TOKENS: GET =================================================================
+handlers._tokens.get = function(data, callback){};
+
+
+// TOKENS: PUT =================================================================
+handlers._tokens.put = function(data, callback){};
+
+
+// TOKENS: DELETE ==============================================================
+handlers._tokens.delete = function(data, callback){};
+
+
 module.exports = handlers;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
