@@ -582,20 +582,26 @@ handlers._checks.get = function(data, callback){
     const tokenID = getString(data.header.token);
     const checkID = getString(data.query.check);
     
-    if (tokenID && checkID){
-        // get userID from token
+    if (tokenID && checkID){ 
         _data.read('tokens', tokenID, function(error, tokenData){
             if(!error && tokenData){
                 // verify token
                 handlers._tokens.verify(tokenID, tokenData.userID, function(verified){
                     if(verified){
-                        _data.read('checks', checkID, function(error, checkData){
-                            if(!error && checkData){
-                                callback(200, checkData);
+                        
+                        _data.read('users', tokenData.userID, function(error, userData){
+                            if(!error && userData){
+                                _data.read('checks', checkID, function(error, checkData){
+                                    if(!error && checkData){
+                                        callback(200, checkData);
+                                    } else {
+                                        callback(404, {'error': `Check does not exist. id=${ids[i]}`});
+                                    }
+                                });
                             } else {
-                                callback(404, {'error': 'Check does not exist'});
+                                callback(400, {'error': 'No user data'});
                             }
-                        });
+                        }); // get user data
                     } else {
                         callback(400, {'error': 'Token invalid'});
                     }
@@ -603,15 +609,44 @@ handlers._checks.get = function(data, callback){
             } else {
                 callback(404, {'error': 'User not found'});
             }
-        }); // get userID w/ token
+        }); // get tokenData
     } else {
         callback(400, {'error': 'Missing required field'});
     }
 };
 
+handlers._checks._batch = function(tokenID, checkID, callback){
+    _data.read('tokens', tokenID, function(error, tokenData){
+        if(!error && tokenData){
+            // verify token
+            handlers._tokens.verify(tokenID, tokenData.userID, function(verified){
+                if(verified){
+                    _data.read('users', tokenData.userID, function(error, userData){
+                        if(!error && userData){
+                            var ids = checkID ? [checkID]: userData.checks;
+                            var results = [];
+                            
+                            for(i = 0; i < ids.length; i++){
+                            }
+
+                            callback(200, results);
+                        } else {
+                            callback(400, {'error': 'No user data'});
+                        }
+                    });
+                } else {
+                    callback(400, {'error': 'Token invalid'});
+                }
+            }); // verify token
+        } else {
+            callback(404, {'error': 'User not found'});
+        }
+    });
+}
+
 
 handlers._checks.put = function(data, callback){ 
-    callback(100, {'info': 'this route is under construction'}); 
+    
 };
 
 
