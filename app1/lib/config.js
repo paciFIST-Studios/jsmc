@@ -17,7 +17,9 @@ environments.staging = {
     'httpsPort': 27183,
     'envName': 'staging',
     'hashingSecret': 'HzZtYPbZRY7bvA5kD7FQpC4C8pQW2fyB62jARjvSeG57hBSwqsHGq6SptRzH',
-    'maxChecks': 5
+    'maxChecks': 5,
+    'minCheckTimeout': 1,
+    'maxCheckTimeout': 5
 };
 
 
@@ -27,7 +29,9 @@ environments.production = {
     'httpsPort': 27183,
     'envName': 'production',
     'hashingSecret': 'nVrvdFh6c4567pVwYGgfDuYkXuYehK4C4dThJVTQJFwsurt4hQDkgrXuKkKq',
-    'maxChecks': 5
+    'maxChecks': 5,
+    'minCheckTimeout': 1,
+    'maxCheckTimeout': 5
 };
 
 

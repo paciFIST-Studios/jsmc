@@ -1,6 +1,6 @@
 /*
  * Title: Request Handlers
- *
+ * Description: these handle incoming requests, and return any relevant data
  *
  *
  */
@@ -41,8 +41,8 @@ function getPhone(unformattedPhone){
 
 function getTimeout(timeout){
     const val = getInt(timeout);
-    const min = handlers._checks.minTimeout;
-    const max = handlers._checks.maxTimeout;
+    const min = config.minCheckTimeout;
+    const max = config.maxCheckTimeout;
     
     return handlers._clamp(val, min, max);
 };
@@ -57,7 +57,9 @@ handlers._clamp = function(val, min, max){
     }
 }
 
-function getStringFromArray(string, array){
+function getStringInArray(string, array){
+    // returns a string, if that string is also in the supplied array
+    // otherwise returns false
     const str = getString(string);
     for(i = 0; i < array.length; i++ ){
         if(typeof(array[i]) == 'string' && array[i] == str ){
@@ -68,12 +70,14 @@ function getStringFromArray(string, array){
     return false;
 };
 
-function getArray(data){
+function getAnArray(data){
+    // returns array
+    // returns orignial object, if it was an array, and had elements
     if (typeof(data) == 'object' && data instanceof Array && data.length > 0){
         return data
     }
 
-    return false;
+    return [];
 };
 
 function getString(unformattedString){
@@ -162,22 +166,21 @@ handlers._users.post = function(data, callback){
                             console.log(error);
                             callback(500, {'error': 'Could not create new user'});
                         }
-                    });
-
+                    }); // store created user record
                 } else {
                     callback(500, {'error': 'Could not hash supplied password'});
                 }
             } else {
                 callback(400, {'error': 'A user with this phone number already exists'})
             }
-        });
+        }); // verify no-record for user
     } else {
         callback(400, {'error': 'Missing required fields'});
     }
 };
 
 // USERS: GET =================================================================
-// required data: phone
+// required data: phone, token
 // optional data: none
 handlers._users.get = function(data, callback){
 
@@ -196,22 +199,19 @@ handlers._users.get = function(data, callback){
                     } else {
                         callback(404, {'error': 'User not found'});
                     }
-                });
-
+                }); // retrieve user record
             } else {
                 callback(403, {'error': 'Token is not valid'});
             }
-        });
-
+        }); // verify token
     } else {
         callback(400, {'error': 'Missing required field'});
     }
 };
 
 
-// USERS: PUT =================================================================
-// "update"
-// required data: phone
+// USERS: PUT "update" ========================================================
+// required data: phone, token
 // optional data: firstName, lastName, password (requires 1+)
 handlers._users.put = function(data, callback){
     
@@ -252,12 +252,12 @@ handlers._users.put = function(data, callback){
                                     console.log(error);
                                     callback(500, {'error': 'Internal Error: Could not update user'});
                                 }
-                            });
+                            }); // store updated user record
 
                         } else {
                             callback(400, {'error': 'User does not exist'});
                         }
-                    });
+                    }); // get user record
                     
                 } else {
                     callback(400, {'error': 'Missing update information'});
@@ -265,7 +265,7 @@ handlers._users.put = function(data, callback){
             } else {
                 callback(403, {'error': 'Token is not valid'});
             }
-        });
+        }); // verify token
     } else {
         callback(400, {'error': 'Missing required field'});
     }
@@ -294,17 +294,15 @@ handlers._users.delete = function(data, callback){
                             } else {
                                 callback(500, {'error': 'Internal Error: Could not delete user'});
                             }
-                        });
-
+                        }); // delete user record
                     } else {
                         callback(400, {'error': 'User not found'});
                     }
-                });
+                }); // verify existence of user record
             } else {
                 callback(403, {'error': 'Token is not valid'});
             }
-        });
-
+        }); // verify token
     } else {
         callback(400, {'error': 'Missing required field'});
     }
@@ -396,10 +394,9 @@ handlers._tokens.post = function(data, callback){
 
 
 // TOKENS: GET =================================================================
-// required data: tokenID
+// required data: token
 // optional data: none
 handlers._tokens.get = function(data, callback){
-    //const tokenID = getString(data.query.token);
     const tokenID = getString(data.header.token);
     if (tokenID){
         if(tokenID.length == handlers._token_length){
@@ -410,7 +407,6 @@ handlers._tokens.get = function(data, callback){
                     callback(500, {'error': 'Internal Error, could not retreive token data'});
                 }
             });
-
         } else {
             callback(400, {'error': 'Malformed Token'});
         }
@@ -421,7 +417,7 @@ handlers._tokens.get = function(data, callback){
 
 
 // TOKENS: PUT =================================================================
-// required data: tokenID, addtime(bool)
+// required data: token, addtime(bool)
 // required data: none
 handlers._tokens.put = function(data, callback){
     const tokenID = getString(data.header.token);
@@ -442,7 +438,6 @@ handlers._tokens.put = function(data, callback){
                         callback(500, {'error': 'Internal Error: Could not update token'})
                     }
                 });
-
             } else {
                 callback(400, {'error': 'Token expired.  Create new token.'});
             }
@@ -457,7 +452,7 @@ handlers._tokens.put = function(data, callback){
 
 
 // TOKENS: DELETE ==============================================================
-// required data: id
+// required data: token
 // optional data: none
 handlers._tokens.delete = function(data, callback){
     const tokenID = getString(data.header.token);
@@ -495,17 +490,15 @@ handlers.checks = function(data, callback){
 handlers._checks = {};
 handlers._checks.methods = ['post', 'get', 'put', 'delete']
 handlers._checks.protocols = ['http', 'https']
-handlers._checks.maxTimeout = 5;
-handlers._checks.minTimeout = 1;
 
-// required data: protocol, url, method, success codes, timeout seconds
+// required data: protocol, url, method, success codes, timeout seconds, token
 // optional data: none
 handlers._checks.post = function(data, callback){
     // data used to poll the target site
     const url = getString(data.payload.url);
-    const protocol = getStringFromArray(data.payload.protocol, handlers._checks.protocols);
-    const method = getStringFromArray(data.payload.method, handlers._checks.methods);
-    const codes = getArray(data.payload.codes);
+    const protocol = getStringInArray(data.payload.protocol, handlers._checks.protocols);
+    const method = getStringInArray(data.payload.method, handlers._checks.methods);
+    const codes = getAnArray(data.payload.codes);
     const timeout = getTimeout(data.payload.timeout);
 
     if (url && protocol && method && codes){
@@ -523,10 +516,7 @@ handlers._checks.post = function(data, callback){
                             
                                 _data.read('users', tokenData.userID, function(error, userData){
                                     if(!error && userData){
-                                        var userChecks = getArray(userData.checks);
-                                        if(!userChecks){
-                                            userChecks = [];
-                                        }
+                                        var userChecks = getAnArray(userData.checks);
                                         if(userChecks.length < config.maxChecks){
                                             // create a random id for check
                                             var checkID = helpers.createRandomString(20);
@@ -559,7 +549,8 @@ handlers._checks.post = function(data, callback){
                                                 }
                                             }); // data create, write check to disk
                                         } else {
-                                            const msg = `User already has ${maxChecks}/${maxChecks} tasks scheduled.  Delete a task before adding a new one.`;
+                                            const mc = config.maxChecks
+                                            const msg = `User already has ${mc}/${mc} tasks scheduled.  Delete a task before adding a new one.`;
                                             callback(400, {'error': msg});
                                         } 
                                     } else {
@@ -585,10 +576,48 @@ handlers._checks.post = function(data, callback){
     }
 };
 
+// requried data: token, checkID
+// optional data: none
+handlers._checks.get = function(data, callback){ 
+    const tokenID = getString(data.header.token);
+    const checkID = getString(data.query.check);
+    
+    if (tokenID && checkID){
+        // get userID from token
+        _data.read('tokens', tokenID, function(error, tokenData){
+            if(!error && tokenData){
+                // verify token
+                handlers._tokens.verify(tokenID, tokenData.userID, function(verified){
+                    if(verified){
+                        _data.read('checks', checkID, function(error, checkData){
+                            if(!error && checkData){
+                                callback(200, checkData);
+                            } else {
+                                callback(404, {'error': 'Check does not exist'});
+                            }
+                        });
+                    } else {
+                        callback(400, {'error': 'Token invalid'});
+                    }
+                }); // verify token
+            } else {
+                callback(404, {'error': 'User not found'});
+            }
+        }); // get userID w/ token
+    } else {
+        callback(400, {'error': 'Missing required field'});
+    }
+};
 
-handlers._checks.get = function(data, callback){ callback(100, {'info': 'this route is under construction'}); };
-handlers._checks.put = function(data, callback){ callback(100, {'info': 'this route is under construction'}); };
-handlers._checks.delete = function(data, callback){ callback(100, {'info': 'this route is under construction'}); };
+
+handlers._checks.put = function(data, callback){ 
+    callback(100, {'info': 'this route is under construction'}); 
+};
+
+
+handlers._checks.delete = function(data, callback){ 
+    callback(100, {'info': 'this route is under construction'}); 
+};
 
 
 module.exports = handlers;
