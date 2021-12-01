@@ -117,21 +117,3 @@ lib.delete = function(dir, file, callback){
 
 module.exports = lib;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
