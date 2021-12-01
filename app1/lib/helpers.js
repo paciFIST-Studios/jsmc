@@ -11,18 +11,16 @@ const secret = require('./secretHash');
 
 var helpers = {};
 
-// Creates a SHA256 hash
+// Creates a SHA256 hash; the secretHash is not in the code depot
 helpers.hash = function(str){
     if(typeof(str) == 'string' && str.length > 0){
         var hash = crypto.createHmac('sha256', secret.hash)
             .update(str)
             .digest('hex');
-
         return hash;
     } else {
         return false;
     }
-    
 };
 
 
@@ -37,11 +35,12 @@ helpers.parseJsonToObject = function(str){
     }
 }
 
+
 // modified from:  https://stackoverflow.com/a/8358141
 helpers.formatPhoneNumber = function(str){
     if(typeof(str) == 'string'){
         var cleaned = str.replace(/\D+/g, ''); // replace all non-digits with nothing
-        // if someone submitted a country code, reject the number
+        // reject numbers with country codes
         if (cleaned.length == 10){
             return cleaned;
         }
@@ -87,21 +86,4 @@ helpers.createAuthToken = function(userID, length, lifespan){
 
 
 module.exports = helpers;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

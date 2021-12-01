@@ -43,9 +43,3 @@ var exportEnvironment = typeof(environments[currentEnvironment]) == 'object' ? e
 
 module.exports = exportEnvironment;
 
-
-
-
-
-
-
