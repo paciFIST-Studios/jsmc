@@ -9,7 +9,7 @@
 
 const _data = require('./data');
 const helpers = require('./helpers');
-
+const config = require('./config');
 
 // handler callbacks return (statusCode, json)
 var handlers = {};
@@ -39,14 +39,61 @@ function getPhone(unformattedPhone){
     return phone;
 };
 
-function getString(unformattedString){
-    const str = typeof(unformattedString) == 'string' && unformattedString.trim().length > 0 
-        ? unformattedString.trim() 
-        : false;
-
-    // returns a string, of len > 0, or false
-    return str;
+function getTimeout(timeout){
+    const val = getInt(timeout);
+    const min = handlers._checks.minTimeout;
+    const max = handlers._checks.maxTimeout;
+    
+    return handlers._clamp(val, min, max);
 };
+
+handlers._clamp = function(val, min, max){
+    if(val <= min){
+        return min;
+    } else if (val >= max){
+        return max;
+    } else {
+        return val;
+    }
+}
+
+function getStringFromArray(string, array){
+    const str = getString(string);
+    for(i = 0; i < array.length; i++ ){
+        if(typeof(array[i]) == 'string' && array[i] == str ){
+            return str;
+        }
+    }
+
+    return false;
+};
+
+function getArray(data){
+    if (typeof(data) == 'object' && data instanceof Array && data.length > 0){
+        return data
+    }
+
+    return false;
+};
+
+function getString(unformattedString){
+    if (typeof(unformattedString) == 'string'){
+        const trimmed = unformattedString.trim();
+        if(trimmed.length > 0){
+            return trimmed;
+        }
+    }
+
+    return false;
+};
+
+function getInt(number){
+    if(typeof(number) == 'number' && number % 1 === 0){
+        return number;
+    }
+
+    return false;
+}
 
 function getBool(unformattedBool){
     if(typeof(unformattedBool) == 'boolean'){
@@ -222,7 +269,6 @@ handlers._users.put = function(data, callback){
     } else {
         callback(400, {'error': 'Missing required field'});
     }
-
 };
 
 
@@ -276,7 +322,6 @@ handlers.tokens = function(data, callback){
         // http code for "method not allowed"
         callback(405);
     }
-
 };
 
 handlers._tokens = {};
@@ -435,6 +480,115 @@ handlers._tokens.delete = function(data, callback){
         callback(400, {'error': 'Missing or malformed field'});
     }
 };
+
+
+// CHECK TASKS =================================================================
+handlers.checks = function(data, callback){
+    if (handlers._checks.methods.indexOf(data.method) > -1){
+        handlers._checks[data.method](data, callback);
+    } else {
+        // http code for "method not allowed"
+        callback(405);
+    }
+};
+
+handlers._checks = {};
+handlers._checks.methods = ['post', 'get', 'put', 'delete']
+handlers._checks.protocols = ['http', 'https']
+handlers._checks.maxTimeout = 5;
+handlers._checks.minTimeout = 1;
+
+// required data: protocol, url, method, success codes, timeout seconds
+// optional data: none
+handlers._checks.post = function(data, callback){
+    // data used to poll the target site
+    const url = getString(data.payload.url);
+    const protocol = getStringFromArray(data.payload.protocol, handlers._checks.protocols);
+    const method = getStringFromArray(data.payload.method, handlers._checks.methods);
+    const codes = getArray(data.payload.codes);
+    const timeout = getTimeout(data.payload.timeout);
+
+    if (url && protocol && method && codes){
+
+        const tokenID = getString(data.header.token);
+        if(tokenID){
+         
+            _data.read('tokens', tokenID, function(error, tokenData){
+                if(!error && tokenData){
+                 
+                    handlers._tokens.verify(tokenID, tokenData.userID, function(verified){
+                        if(verified){
+                            const time = Date.now();
+                            if(tokenData.expires > time){
+                            
+                                _data.read('users', tokenData.userID, function(error, userData){
+                                    if(!error && userData){
+                                        var userChecks = getArray(userData.checks);
+                                        if(!userChecks){
+                                            userChecks = [];
+                                        }
+                                        if(userChecks.length < config.maxChecks){
+                                            // create a random id for check
+                                            var checkID = helpers.createRandomString(20);
+                                            var checkObject = {
+                                                'checkID': checkID,
+                                                'userID': tokenData.userID,
+                                                'protocol': protocol,
+                                                'url': url,
+                                                'method': method,
+                                                'codes': codes,
+                                                'timeout': timeout
+                                            };
+
+                                            // store check to disk
+                                            _data.create('checks', checkID, checkObject, function(error){
+                                                if(!error){
+                                                    // add new check id to user's data
+                                                    userData.checks = userChecks;
+                                                    userData.checks.push(checkID);
+                                                    
+                                                    _data.update('users', tokenData.userID, userData, function(error){
+                                                        if(!error){
+                                                            callback(200, checkObject);
+                                                        } else {
+                                                            callback(500, {'error': 'Internal Error: could not update user data'});
+                                                        } 
+                                                    });
+                                                } else {
+                                                    callback(500, {'error': 'Internal Error: could not create task'});
+                                                }
+                                            }); // data create, write check to disk
+                                        } else {
+                                            const msg = `User already has ${maxChecks}/${maxChecks} tasks scheduled.  Delete a task before adding a new one.`;
+                                            callback(400, {'error': msg});
+                                        } 
+                                    } else {
+                                        callback(400, {'error': 'Account invalid'});
+                                    }
+                                }); // data read, get user object
+                            } else { 
+                                callback(400, {'error': 'Token expired'});
+                            }
+                        } else {
+                            callback(400, {'error': 'Token invalid'});
+                        }
+                    }); // handlers, verify token
+                } else { 
+                    callback(403, {'error': 'Token does not exist'});
+                }
+            }); // _data.read, get token object from id
+        } else {
+            callback(404, {'error': 'Missing token'});
+        }
+    } else {
+        callback(400, {'error': 'Missing required data, or data invalid'});
+    }
+};
+
+
+handlers._checks.get = function(data, callback){ callback(100, {'info': 'this route is under construction'}); };
+handlers._checks.put = function(data, callback){ callback(100, {'info': 'this route is under construction'}); };
+handlers._checks.delete = function(data, callback){ callback(100, {'info': 'this route is under construction'}); };
 
 
 module.exports = handlers;
