@@ -3,3 +3,4 @@ node-v16.13.0-linux-x64
 *.swp
 
 
+app1/lib/secretHash.js

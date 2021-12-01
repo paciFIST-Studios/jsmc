@@ -7,13 +7,14 @@
 
 const crypto = require('crypto');
 const config = require('./config');
+const secret = require('./secretHash');
 
 var helpers = {};
 
 // Creates a SHA256 hash
 helpers.hash = function(str){
     if(typeof(str) == 'string' && str.length > 0){
-        var hash = crypto.createHmac('sha256', config.hashingSecret)
+        var hash = crypto.createHmac('sha256', secret.hash)
             .update(str)
             .digest('hex');
 
