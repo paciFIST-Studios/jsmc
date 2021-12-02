@@ -595,7 +595,7 @@ handlers._checks.get = function(data, callback){
                                     if(!error && checkData){
                                         callback(200, checkData);
                                     } else {
-                                        callback(404, {'error': `Check does not exist. id=${ids[i]}`});
+                                        callback(404, {'error': `Check does not exist. id=${checkID}`});
                                     }
                                 });
                             } else {
@@ -615,43 +615,145 @@ handlers._checks.get = function(data, callback){
     }
 };
 
-handlers._checks._batch = function(tokenID, checkID, callback){
-    _data.read('tokens', tokenID, function(error, tokenData){
-        if(!error && tokenData){
-            // verify token
-            handlers._tokens.verify(tokenID, tokenData.userID, function(verified){
-                if(verified){
-                    _data.read('users', tokenData.userID, function(error, userData){
-                        if(!error && userData){
-                            var ids = checkID ? [checkID]: userData.checks;
-                            var results = [];
-                            
-                            for(i = 0; i < ids.length; i++){
-                            }
 
-                            callback(200, results);
-                        } else {
-                            callback(400, {'error': 'No user data'});
-                        }
-                    });
-                } else {
-                    callback(400, {'error': 'Token invalid'});
-                }
-            }); // verify token
-        } else {
-            callback(404, {'error': 'User not found'});
-        }
-    });
-}
-
-
+// required data: token
+// optional data: (1+ of) protocol, url, method, codes, timeout 
 handlers._checks.put = function(data, callback){ 
-    
+    const tokenID = getString(data.header.token);
+    const checkID = getString(data.payload.check);
+
+    if (tokenID && checkID){
+        const protocol = getString(data.payload.protocol);
+        const url = getString(data.payload.url);
+        const method = getString(data.payload.url);
+        const codes = getAnArray(data.payload.codes);
+        const timeout = getTimeout(data.payload.timeout);
+
+        // verify some data for update
+        if(protocol || url || method | timeout || codes.length > 0){
+            
+            // verify token
+            _data.read('tokens', tokenID, function(error, tokenData){
+                if(!error && tokenData){
+                    handlers._tokens.verify(tokenID, tokenData.userID, function(verified){
+                        
+                        // now that we know the token is legit, we have to ensure "check"
+                        // actually belongs to the user
+                        _data.read('users', tokenData.userID, function(error, userData){
+                            if(!error && userData){
+                                if (userData.checks.indexOf(checkID) > -1){
+                                    
+                                    // now that we know the user has a coherent edit requrest
+                                    // and that request is valid to perform
+                                    _data.read('checks', checkID, function(error, checkData){
+                                        if(!error && checkData){
+                                            
+                                            if(protocol){
+                                                checkData.protocol = protocol;
+                                            } 
+
+                                            if(url){
+                                                checkData.url = url;
+                                            } 
+
+                                            if(method){
+                                                checkData.method = method;
+                                            } 
+
+                                            if(codes){
+                                                checkData.codes = codes;
+                                            } 
+
+                                            if(timeout){
+                                                checkData.timeout = timeout;
+                                            } 
+                                            
+                                            // store update
+                                            _data.update('checks', checkID, checkData, function(error){
+                                                if(!error){
+                                                    callback(200, {'check_updated': true});
+                                                } else {
+                                                    callback(500, {'error': 'Internal Error: Could not update "Check" data'});
+                                                }
+                                            }); // store update
+                                        } else {
+                                            callback(500, {'error': 'Internal Error: "Check" data not found'});
+                                        }
+                                    }); // open "check" data for edit
+                                } else{
+                                    callback(404, {'error': 'Unauthorized edit'});
+                                }
+                            } else {
+                                callback(400, {'error': 'User not found'});
+                            }
+                        }); // make sure user owns the "check" to be modified
+                    }); // verify token
+                } else {
+                    callback(400, {'error':'Token not recognized'});
+                }
+            }); // make sure token is on record
+        } else {
+            callback(400, {'error': 'Empty Request'});
+        }
+    } else {
+        callback(404, {'error': 'Token authorization && CheckID requried'});
+    }
 };
 
 
 handlers._checks.delete = function(data, callback){ 
-    callback(100, {'info': 'this route is under construction'}); 
+    const tokenID = getString(data.header.token);
+    const checkID = getString(data.query.check);
+
+    // required fields
+    if(tokenID && checkID){
+        // make sure token is valid
+        _data.read('tokens', tokenID, function(error, tokenData){
+            if(!error && tokenData){
+                handlers._tokens.verify(tokenID, tokenData.userID, function(verified){
+                    if(verified){
+                        
+                        // make sure user, associated with this token, actually owns the "check"
+                        _data.read('users', tokenData.userID, function(error, userData){
+                            if(!error && userData){
+                                const idx = userData.checks.indexOf(checkID);
+                                if(idx > -1){
+                                    
+                                    _data.delete('checks', checkID, function(error){
+                                        if(!error){
+                                            
+                                            // remove from user profile
+                                            userData.checks.splice(idx, 1);
+                                            _data.update('users', tokenData.userID, userData, function(error){
+                                                if(!error){
+                                                    callback(200, {'check_removed': true});
+                                                } else {
+                                                    callback(500, {'error': 'Internal Error: could not update user account'});
+                                                }
+                                            }); // store update
+                                        } else {
+                                            console.log(error);
+                                            callback(500, {'error': 'Internal Error: could not remove "check" file'});
+                                        }
+                                    }); // remove "check"
+                                } else {
+                                    callback(404, {'error': 'Action not authorized'});
+                                }
+                            } else {
+                                callback(500, {'error': 'Internal Error: User data not found'});
+                            }
+                        }); // verify token rights
+                    } else {
+                        callback(404, {'error': 'Invalid Token'});
+                    }
+                }); // verify token
+            } else {
+                callback(400, {'error': 'Token not recognized'});
+            }
+        });
+    } else{
+        callback(404, {'error': 'Token authorization && CheckID required'});
+    }
 };
 
 
