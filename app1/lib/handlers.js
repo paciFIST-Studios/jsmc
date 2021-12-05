@@ -126,6 +126,19 @@ handlers.users = function(data, callback){
 // split the different method types into their own fns
 handlers._users = {};
 
+handlers._users._parse_checks = function(userObject){
+    var result = null;
+    if (typeof(userObject) == 'object'){
+        if(typeof(userObject.checks) == 'object' && userObject.checks instanceof Array){
+            result = userObject.checks;
+        } else {
+            result = []
+        }
+    }
+
+    return result;
+}
+
 // USERS: POST ================================================================
 // required data:  first name, last name, phone, password, (bool)tos_agreement
 // optional data:  none
@@ -275,7 +288,6 @@ handlers._users.put = function(data, callback){
 // USERS: DELETE ==============================================================
 // required data: phone
 // optional data: none
-// TODO:    delete existing tokens, related to this user
 handlers._users.delete = function(data, callback){
     
     // check phone number in query string
@@ -288,13 +300,46 @@ handlers._users.delete = function(data, callback){
 
                 _data.read('users', phone, function(error, userData){
                     if(!error && userData){
-                        _data.delete('users', phone, function(error){
+                        _data.delete('tokens', tokenID, function(error){
                             if(!error){
-                                callback(200, {'user_deleted': true});
+                                _data.delete('users', phone, function(error){
+                                    if(!error){
+                                        // now delete each of the checks associate w/ the user
+                                        var checks = handlers._users._parse_checks(userData);
+                                        var deleteCount = checks.length;
+                                        if(deleteCount > 0){
+                                            var checksDeleted = 0;
+                                            var deletionErrors = 0;
+                                            
+                                            checks.forEach(function(checkID){
+                                                _data.delete('checks', checkID, function(error){
+                                                    checksDeleted++;
+                                                    if(error){
+                                                        deletionErrors += 1;
+                                                    }
+
+                                                    if(checksDeleted == deleteCount){
+                                                        if(deletionErrors > 0){
+                                                            const msg = `Internal Error: ${deletionErrors} errors encountered while purging user data`;
+                                                            callback(500, {'error': msg});
+                                                        } else {
+                                                            callback(200, {'user_deleted': true});
+                                                        }
+                                                    } // all work done
+                                                }); // delete checkID
+                                            }); // foreach
+                                        } else {
+                                            // user has no checks in system
+                                            callback(200, {'user_deleted': true});
+                                        }
+                                    } else {
+                                        callback(500, {'error': 'Internal Error: Could not delete user'});
+                                    }
+                                }); // delete user record
                             } else {
-                                callback(500, {'error': 'Internal Error: Could not delete user'});
+                                callback(500, {'error': 'Internal Error: Could not delete user token'});
                             }
-                        }); // delete user record
+                        }); // delete user token
                     } else {
                         callback(400, {'error': 'User not found'});
                     }
@@ -516,7 +561,7 @@ handlers._checks.post = function(data, callback){
                             
                                 _data.read('users', tokenData.userID, function(error, userData){
                                     if(!error && userData){
-                                        var userChecks = getAnArray(userData.checks);
+                                        var userChecks = handlers._users._parse_checks(userData);
                                         if(userChecks.length < config.maxChecks){
                                             // create a random id for check
                                             var checkID = helpers.createRandomString(20);
@@ -641,7 +686,8 @@ handlers._checks.put = function(data, callback){
                         // actually belongs to the user
                         _data.read('users', tokenData.userID, function(error, userData){
                             if(!error && userData){
-                                if (userData.checks.indexOf(checkID) > -1){
+                                var checks = handlers._users._parse_checks(userData);
+                                if (checks.indexOf(checkID) > -1){
                                     
                                     // now that we know the user has a coherent edit requrest
                                     // and that request is valid to perform
@@ -717,7 +763,7 @@ handlers._checks.delete = function(data, callback){
                         // make sure user, associated with this token, actually owns the "check"
                         _data.read('users', tokenData.userID, function(error, userData){
                             if(!error && userData){
-                                const idx = userData.checks.indexOf(checkID);
+                                const idx = handlers._users._parse_checks(userData).indexOf(checkId);
                                 if(idx > -1){
                                     
                                     _data.delete('checks', checkID, function(error){
@@ -738,14 +784,14 @@ handlers._checks.delete = function(data, callback){
                                         }
                                     }); // remove "check"
                                 } else {
-                                    callback(404, {'error': 'Action not authorized'});
+                                    callback(403, {'error': 'Action not authorized'});
                                 }
                             } else {
                                 callback(500, {'error': 'Internal Error: User data not found'});
                             }
                         }); // verify token rights
                     } else {
-                        callback(404, {'error': 'Invalid Token'});
+                        callback(403, {'error': 'Invalid Token'});
                     }
                 }); // verify token
             } else {
