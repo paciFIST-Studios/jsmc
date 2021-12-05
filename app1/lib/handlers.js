@@ -700,7 +700,8 @@ handlers._checks.put = function(data, callback){
     }
 };
 
-
+// required data: token
+// optional data: none
 handlers._checks.delete = function(data, callback){ 
     const tokenID = getString(data.header.token);
     const checkID = getString(data.query.check);

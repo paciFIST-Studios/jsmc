@@ -133,7 +133,6 @@ var internalProcessing = function(request, response){
             debugPrint(methodType, trimmedPath, queryStringObject, headers, buffer);
             console.log(`${statusCode}, ${payloadString}`);
         });
-    
     });
 };
 
