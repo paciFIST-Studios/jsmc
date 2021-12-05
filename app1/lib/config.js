@@ -18,7 +18,12 @@ environments.staging = {
     'envName': 'staging',
     'maxChecks': 5,
     'minCheckTimeout': 1,
-    'maxCheckTimeout': 5
+    'maxCheckTimeout': 5,
+    'twilio': {
+        'fromPhone': 2068238414,
+        'accountSid': '',
+        'authToken': ''
+    }
 };
 
 
@@ -29,7 +34,12 @@ environments.production = {
     'envName': 'production',
     'maxChecks': 5,
     'minCheckTimeout': 1,
-    'maxCheckTimeout': 5
+    'maxCheckTimeout': 5,
+    'twilio': {
+        'fromPhone': 2068238414,
+        'accountSid': '',
+        'authToken': ''
+    }
 };
 
 
